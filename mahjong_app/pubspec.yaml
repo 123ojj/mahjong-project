@@ -1,0 +1,29 @@
+name: mahjong_app
+description: "麻將計分王 App"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.1.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # 這裡就是我們需要的資料庫與圖表套件
+  sqflite: ^2.3.0
+  path_provider: ^2.1.1
+  path: ^1.8.3
+  fl_chart: ^0.65.0
+  share_plus: ^13.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  
+  # 這裡就是把你的資料庫宣告進手機的關鍵設定
+  assets:
+    - assets/mahjong.db
