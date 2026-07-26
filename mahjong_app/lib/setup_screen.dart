@@ -41,6 +41,61 @@ class _SetupScreenState extends State<SetupScreen> {
     });
   }
 
+  void _showAddPlayerDialog() {
+    TextEditingController controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1E293B),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('新增玩家', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          content: TextField(
+            controller: controller,
+            style: const TextStyle(color: Colors.white),
+            autofocus: true,
+            decoration: InputDecoration(
+              hintText: '輸入玩家名稱',
+              hintStyle: const TextStyle(color: Colors.white54),
+              filled: true,
+              fillColor: const Color(0xFF0F172A),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('取消', style: TextStyle(color: Colors.white54)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.tealAccent,
+                foregroundColor: Colors.teal[900],
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () {
+                String newName = controller.text.trim();
+                if (newName.isNotEmpty && !_availablePlayers.contains(newName)) {
+                  setState(() {
+                    _availablePlayers.add(newName);
+                  });
+                  Navigator.pop(context);
+                } else if (newName.isNotEmpty && _availablePlayers.contains(newName)) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('玩家已存在！'), backgroundColor: Colors.orangeAccent),
+                  );
+                } else {
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text('新增', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _startGame() async {
 
     if (_selectedPlayers.toSet().length != 4) {
@@ -158,7 +213,21 @@ class _SetupScreenState extends State<SetupScreen> {
                     const SizedBox(height: 32),
                     
                     // --- 玩家與風位 ---
-                    _buildSectionTitle(Icons.group_outlined, '決定風位與玩家'),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _buildSectionTitle(Icons.group_outlined, '決定風位與玩家'),
+                        TextButton.icon(
+                          onPressed: _showAddPlayerDialog,
+                          icon: const Icon(Icons.person_add_alt_1, color: Colors.tealAccent, size: 20),
+                          label: const Text('新增玩家', style: TextStyle(color: Colors.tealAccent, fontWeight: FontWeight.bold)),
+                          style: TextButton.styleFrom(
+                            backgroundColor: Colors.tealAccent.withOpacity(0.1),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 12),
                     ...List.generate(4, (index) {
                       return Padding(
