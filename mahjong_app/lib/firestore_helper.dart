@@ -89,6 +89,20 @@ class FirestoreHelper {
     }
   }
 
+  Future<void> fixChangSheng47() async {
+    final snapshot = await _firestore.collection('game_records').where('gameName', isEqualTo: '長勝47').get();
+    for (var doc in snapshot.docs) {
+      String playerName = doc.data()['playerName'] as String;
+      if (playerName == '小智') {
+        await doc.reference.update({'playerName': '小竑'});
+      } else if (playerName == '小竑') {
+        await doc.reference.update({'playerName': '小承'});
+      } else if (playerName == '小承') {
+        await doc.reference.update({'playerName': '小智'});
+      }
+    }
+  }
+
   Future<List<String>> getAllPlayers() async {
     final snapshot = await _firestore.collection('game_records').get();
     final players = snapshot.docs.map((doc) => doc.data()['playerName'] as String).toSet().toList();

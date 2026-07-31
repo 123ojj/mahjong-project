@@ -90,20 +90,20 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFE8E8E8),
       appBar: AppBar(
-        leading: IconButton(icon: const Icon(Icons.menu, color: Colors.white), onPressed: () {}),
-        title: const Text('麻將牌局紀錄', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
         backgroundColor: const Color(0xFF4B684B),
+        title: const Text('歷史紀錄 (V3)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 2)),
+        centerTitle: true,
         elevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.build, color: Colors.white), 
             onPressed: () async {
-              // await DatabaseHelper.instance.fixChangSheng46();
+              await FirestoreHelper.instance.fixChangSheng47();
               setState(() {
                 _historyFuture = FirestoreHelper.instance.getHistoryRecords();
               });
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('已將長勝46的小竑/小著互換、小智/小承互換！')),
+                const SnackBar(content: Text('已將長勝47的 小智->小竑、小竑->小承、小承->小智！')),
               );
             }
           ),
