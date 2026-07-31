@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'setup_screen.dart';
 import 'db_helper.dart';
+import 'firestore_helper.dart';
 import 'score_trend_chart.dart';
 
 class GameTableScreen extends StatefulWidget {
@@ -156,7 +157,7 @@ class GameTableScreenState extends State<GameTableScreen> {
     allStates.add(currentStateSnapshot);
     String historyJson = jsonEncode(allStates);
 
-    DatabaseHelper.instance.saveGameRecord(
+    FirestoreHelper.instance.saveGameRecord(
       gameName: widget.gameName!,
       players: widget.players,
       scores: _currentScores,
@@ -658,14 +659,14 @@ class GameTableScreenState extends State<GameTableScreen> {
                 if (gameName.isEmpty) gameName = defaultGameName;
                 
                 if (widget.gameName != null && widget.gameName != gameName) {
-                  await DatabaseHelper.instance.renameGameRecord(widget.gameName!, gameName);
+                  await FirestoreHelper.instance.renameGameRecord(widget.gameName!, gameName);
                 }
                 
                 List<List<int>> allStates = List.from(_history);
                 allStates.add(currentStateSnapshot);
                 String historyJson = jsonEncode(allStates);
 
-                await DatabaseHelper.instance.saveGameRecord(
+                await FirestoreHelper.instance.saveGameRecord(
                   gameName: gameName,
                   players: widget.players,
                   scores: _currentScores,

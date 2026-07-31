@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'db_helper.dart';
+import 'firestore_helper.dart';
+import 'game_table.dart';
 import 'home_screen.dart';
 
 class HistoryScreen extends StatefulWidget {
@@ -33,9 +35,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
               onPressed: () async {
                 String newName = controller.text.trim();
                 if (newName.isNotEmpty && newName != oldName) {
-                  await DatabaseHelper.instance.renameGameRecord(oldName, newName);
+                  await FirestoreHelper.instance.renameGameRecord(oldName, newName);
                   setState(() {
-                    _historyFuture = DatabaseHelper.instance.getHistoryRecords();
+                    _historyFuture = FirestoreHelper.instance.getHistoryRecords();
                   });
                 }
                 Navigator.pop(context);
@@ -63,9 +65,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red[700]),
               onPressed: () async {
-                await DatabaseHelper.instance.deleteGameRecord(gameName);
+                await FirestoreHelper.instance.deleteGameRecord(gameName);
                 setState(() {
-                  _historyFuture = DatabaseHelper.instance.getHistoryRecords();
+                  _historyFuture = FirestoreHelper.instance.getHistoryRecords();
                 });
                 Navigator.pop(context);
               },
@@ -80,7 +82,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   @override
   void initState() {
     super.initState();
-    _historyFuture = DatabaseHelper.instance.getHistoryRecords();
+    _historyFuture = FirestoreHelper.instance.getHistoryRecords();
   }
 
   @override
@@ -96,13 +98,25 @@ class _HistoryScreenState extends State<HistoryScreen> {
           IconButton(
             icon: const Icon(Icons.build, color: Colors.white), 
             onPressed: () async {
-              await DatabaseHelper.instance.fixChangSheng46();
+              // await DatabaseHelper.instance.fixChangSheng46();
               setState(() {
-                _historyFuture = DatabaseHelper.instance.getHistoryRecords();
+                _historyFuture = FirestoreHelper.instance.getHistoryRecords();
               });
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('已將長勝46的小竑/小著互換、小智/小承互換！')),
               );
+            }
+          ),
+          IconButton(
+            icon: const Icon(Icons.cloud_upload, color: Colors.white),
+            tooltip: '上傳本地資料到雲端',
+            onPressed: () async {
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('開始上傳資料到雲端...')));
+              await FirestoreHelper.instance.migrateLocalDataToFirestore();
+              setState(() {
+                _historyFuture = FirestoreHelper.instance.getHistoryRecords();
+              });
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('資料上傳完成！網頁版現在可以看到歷史紀錄了！')));
             }
           ),
           IconButton(icon: const Icon(Icons.add, color: Colors.white), onPressed: () {}),
@@ -158,7 +172,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     await Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => GameSessionScreen(
+                        builder: (context) => GameTableScreen(
                           gameName: gameName,
                           players: players,
                           initialDealerIndex: 0,
@@ -175,7 +189,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     );
                     
                     setState(() {
-                      _historyFuture = DatabaseHelper.instance.getHistoryRecords();
+                      _historyFuture = FirestoreHelper.instance.getHistoryRecords();
                     });
                   },
                   child: Padding(

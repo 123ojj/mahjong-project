@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'db_helper.dart';
+import 'statistics_screen.dart';
+import 'firestore_helper.dart';
 
 class GlobalPlayerProfileScreen extends StatefulWidget {
   const GlobalPlayerProfileScreen({Key? key}) : super(key: key);
@@ -42,10 +44,10 @@ class _GlobalPlayerProfileScreenState extends State<GlobalPlayerProfileScreen> {
   }
 
   Future<void> _loadAllData() async {
-    final players = await DatabaseHelper.instance.getAllPlayers();
+    final players = await FirestoreHelper.instance.getAllPlayers();
     Map<String, Map<String, dynamic>> statsMap = {};
     for (String player in players) {
-      statsMap[player] = await DatabaseHelper.instance.getPlayerStats(player);
+      statsMap[player] = await FirestoreHelper.instance.getPlayerStats(player);
     }
     
     setState(() {
@@ -70,7 +72,7 @@ class _GlobalPlayerProfileScreenState extends State<GlobalPlayerProfileScreen> {
 
   Future<void> _loadSynergyStats(String player) async {
     setState(() => _isLoadingSynergy = true);
-    final list = await DatabaseHelper.instance.getSynergyStats(player);
+    final list = await FirestoreHelper.instance.getSynergyStats(player);
     setState(() {
       _synergyTargetPlayer = player;
       _synergyStatsList = list;
@@ -109,6 +111,7 @@ class _GlobalPlayerProfileScreenState extends State<GlobalPlayerProfileScreen> {
               Tab(icon: Icon(Icons.leaderboard)),
               Tab(text: '玩家比較'),
               Tab(text: '相生相剋'),
+              Tab(text: '段位(Elo)'),
             ],
           ),
         ),
@@ -135,6 +138,8 @@ class _GlobalPlayerProfileScreenState extends State<GlobalPlayerProfileScreen> {
                       _buildComparisonView(),
                       // Tab 4: 相生相剋
                       _buildSynergyView(),
+                      // Tab 5: Elo 段位
+                      const StatisticsScreen(),
                     ],
                   ),
       ),

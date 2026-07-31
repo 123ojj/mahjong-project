@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'home_screen.dart';
+import 'game_table.dart';
 import 'db_helper.dart';
+import 'firestore_helper.dart';
 
 class SetupScreen extends StatefulWidget {
   const SetupScreen({Key? key}) : super(key: key);
@@ -27,7 +28,7 @@ class _SetupScreenState extends State<SetupScreen> {
   }
 
   void _loadPlayersFromDB() async {
-    List<String> dbPlayers = await DatabaseHelper.instance.getAllPlayers();
+    List<String> dbPlayers = await FirestoreHelper.instance.getAllPlayers();
     List<String> defaultPlayers = ['小竑', '小智', '小翔', '小承'];
 
     Set<String> combinedPlayers = {...defaultPlayers, ...dbPlayers};
@@ -114,7 +115,7 @@ class _SetupScreenState extends State<SetupScreen> {
 
     String gameName = '牌局 ${DateTime.now().month}/${DateTime.now().day} ${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')}';
 
-    await DatabaseHelper.instance.saveGameRecord(
+    await FirestoreHelper.instance.saveGameRecord(
       gameName: gameName,
       players: List.from(_selectedPlayers),
       scores: [0, 0, 0, 0],
@@ -134,7 +135,7 @@ class _SetupScreenState extends State<SetupScreen> {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (context) => GameSessionScreen(
+        builder: (context) => GameTableScreen(
           gameName: gameName,
           players: List.from(_selectedPlayers),
           initialDealerIndex: _dealerIndex,
