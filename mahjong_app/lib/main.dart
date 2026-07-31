@@ -22,6 +22,12 @@ class MahjongApp extends StatelessWidget {
       theme: ThemeData(
         brightness: Brightness.light,
         primaryColor: Colors.green[800],
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF4B684B),
+          titleTextStyle: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 2, fontSize: 20),
+          centerTitle: true,
+          elevation: 0,
+        ),
         scaffoldBackgroundColor: const Color(0xFFE8E8E8),
       ),
       home: const RootScreen(),

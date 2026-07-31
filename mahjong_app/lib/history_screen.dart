@@ -91,22 +91,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
       backgroundColor: const Color(0xFFE8E8E8),
       appBar: AppBar(
         backgroundColor: const Color(0xFF4B684B),
-        title: const Text('歷史紀錄 (V3)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 2)),
+        title: const Text('歷史紀錄', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 2)),
         centerTitle: true,
         elevation: 0,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.build, color: Colors.white), 
-            onPressed: () async {
-              await FirestoreHelper.instance.fixChangSheng47();
-              setState(() {
-                _historyFuture = FirestoreHelper.instance.getHistoryRecords();
-              });
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('已將長勝47的 小智->小竑、小竑->小承、小承->小智！')),
-              );
-            }
-          ),
           IconButton(
             icon: const Icon(Icons.cloud_upload, color: Colors.white),
             tooltip: '上傳本地資料到雲端',
