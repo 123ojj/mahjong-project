@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'setup_screen.dart';
 import 'db_helper.dart';
 import 'firestore_helper.dart';
@@ -39,6 +41,8 @@ class GameTableScreen extends StatefulWidget {
 
 class GameTableScreenState extends State<GameTableScreen> {
   String? _currentGameName;
+  String? _lastHistoryJson;
+  StreamSubscription<QuerySnapshot>? _gameSubscription;
   List<List<int>> _history = [];
   List<int> _currentScores = [0, 0, 0, 0];
   
@@ -154,6 +158,64 @@ class GameTableScreenState extends State<GameTableScreen> {
     } else {
       _currentDealerIndex = widget.initialDealerIndex;
     }
+    
+    _listenToGameUpdates();
+  }
+
+  @override
+  void dispose() {
+    _gameSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _listenToGameUpdates() {
+    if (_currentGameName == null) return;
+    
+    _gameSubscription = FirebaseFirestore.instance
+        .collection('game_records')
+        .where('gameName', isEqualTo: _currentGameName)
+        .snapshots()
+        .listen((snapshot) {
+      if (snapshot.docs.isEmpty) return;
+      
+      final firstDoc = snapshot.docs.first.data();
+      bool remoteIsLocked = (firstDoc['isLocked'] as int? ?? 0) == 1;
+      String remoteHistoryJson = firstDoc['historyJson'] as String? ?? '[]';
+      
+      if (remoteHistoryJson == _lastHistoryJson && _isGameLocked == remoteIsLocked) {
+        return; 
+      }
+      
+      _lastHistoryJson = remoteHistoryJson;
+      
+      if (mounted) {
+        setState(() {
+          _isGameLocked = remoteIsLocked;
+          
+          if (remoteHistoryJson != '[]' && remoteHistoryJson.isNotEmpty) {
+            List<dynamic> parsed = jsonDecode(remoteHistoryJson);
+            List<List<int>> allStates = parsed.map((e) => List<int>.from(e)).toList();
+            if (allStates.isNotEmpty) {
+              _history = allStates.sublist(0, allStates.length - 1);
+              final lastState = allStates.last;
+              _currentScores = lastState.sublist(0, 4);
+              _selfDrawnCount = lastState.sublist(4, 8);
+              _winCount = lastState.sublist(8, 12);
+              _chuckCount = lastState.sublist(12, 16);
+              _gotSelfDrawnCount = lastState.sublist(16, 20);
+              _maxTaiCount = lastState.sublist(20, 24);
+              _maxComboCount = lastState.sublist(24, 28);
+              _currentDealerIndex = lastState[28];
+              _comboCount = lastState[29];
+              _uiPositions = lastState.sublist(30, 34);
+              _viewOffset = lastState[34];
+              _dealerPassCount = lastState[35];
+              _totalHandsPlayed = lastState[36];
+            }
+          }
+        });
+      }
+    });
   }
 
   void _autoSaveGame() {
@@ -162,6 +224,7 @@ class GameTableScreenState extends State<GameTableScreen> {
     List<List<int>> allStates = List.from(_history);
     allStates.add(currentStateSnapshot);
     String historyJson = jsonEncode(allStates);
+    _lastHistoryJson = historyJson;
 
     FirestoreHelper.instance.saveGameRecord(
       gameName: _currentGameName!,
@@ -672,6 +735,7 @@ class GameTableScreenState extends State<GameTableScreen> {
                 List<List<int>> allStates = List.from(_history);
                 allStates.add(currentStateSnapshot);
                 String historyJson = jsonEncode(allStates);
+                _lastHistoryJson = historyJson;
 
                 await FirestoreHelper.instance.saveGameRecord(
                   gameName: gameName,
