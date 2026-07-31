@@ -1,4 +1,4 @@
-﻿import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'db_helper.dart';
 
@@ -23,26 +23,46 @@ class FirestoreHelper {
     required bool isLocked,
     String? createdAt,
   }) async {
-    String currentTime = createdAt ?? DateTime.now().toString().substring(0, 16).replaceAll('-', '/');
+    final snapshot = await _firestore.collection('game_records').where('gameName', isEqualTo: gameName).get();
     
-    // ?箔?蝣箔?摰閬?????gameName ??????方???    await deleteGameRecord(gameName);
-
-    for (int i = 0; i < 4; i++) {
-      await _firestore.collection('game_records').add({
-        'gameName': gameName,
-        'playerName': players[i],
-        'score': scores[i],
-        'winTimes': winTimes[i],
-        'selfDrawnTimes': selfDrawnTimes[i],
-        'chuckTimes': chuckTimes[i],
-        'gotSelfDrawnTimes': gotSelfDrawnTimes[i],
-        'highestTai': highestTai[i],
-        'maxCombo': maxCombo[i],
-        'gameCount': gameCount,
-        'historyJson': historyJson,
-        'createdAt': currentTime,
-        'isLocked': isLocked ? 1 : 0,
-      });
+    if (snapshot.docs.isEmpty) {
+      String currentTime = createdAt ?? DateTime.now().toString().substring(0, 16).replaceAll('-', '/');
+      for (int i = 0; i < 4; i++) {
+        await _firestore.collection('game_records').add({
+          'gameName': gameName,
+          'playerName': players[i],
+          'score': scores[i],
+          'winTimes': winTimes[i],
+          'selfDrawnTimes': selfDrawnTimes[i],
+          'chuckTimes': chuckTimes[i],
+          'gotSelfDrawnTimes': gotSelfDrawnTimes[i],
+          'highestTai': highestTai[i],
+          'maxCombo': maxCombo[i],
+          'gameCount': gameCount,
+          'historyJson': historyJson,
+          'createdAt': currentTime,
+          'isLocked': isLocked ? 1 : 0,
+        });
+      }
+    } else {
+      for (int i = 0; i < 4; i++) {
+        var docs = snapshot.docs.where((d) => d.data()['playerName'] == players[i]).toList();
+        if (docs.isNotEmpty) {
+          await docs.first.reference.update({
+            'score': scores[i],
+            'winTimes': winTimes[i],
+            'selfDrawnTimes': selfDrawnTimes[i],
+            'chuckTimes': chuckTimes[i],
+            'gotSelfDrawnTimes': gotSelfDrawnTimes[i],
+            'highestTai': highestTai[i],
+            'maxCombo': maxCombo[i],
+            'gameCount': gameCount,
+            'historyJson': historyJson,
+            'isLocked': isLocked ? 1 : 0,
+            if (createdAt != null) 'createdAt': createdAt,
+          });
+        }
+      }
     }
   }
 

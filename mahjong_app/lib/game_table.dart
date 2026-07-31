@@ -38,6 +38,7 @@ class GameTableScreen extends StatefulWidget {
 }
 
 class GameTableScreenState extends State<GameTableScreen> {
+  String? _currentGameName;
   List<List<int>> _history = [];
   List<int> _currentScores = [0, 0, 0, 0];
   
@@ -110,6 +111,11 @@ class GameTableScreenState extends State<GameTableScreen> {
     super.initState();
     _isGameLocked = widget.isLocked;
     
+    _currentGameName = widget.gameName;
+    if (_currentGameName == null) {
+      _currentGameName = '牌局 ${DateTime.now().month}/${DateTime.now().day} ${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')}';
+    }
+    
     if (widget.initialHistoryJson != null && widget.initialHistoryJson != '[]' && widget.initialHistoryJson!.isNotEmpty) {
       // Re-hydrate past game state
       List<dynamic> parsed = jsonDecode(widget.initialHistoryJson!);
@@ -151,14 +157,14 @@ class GameTableScreenState extends State<GameTableScreen> {
   }
 
   void _autoSaveGame() {
-    if (_isGameLocked || widget.gameName == null) return;
+    if (_isGameLocked || _currentGameName == null) return;
     
     List<List<int>> allStates = List.from(_history);
     allStates.add(currentStateSnapshot);
     String historyJson = jsonEncode(allStates);
 
     FirestoreHelper.instance.saveGameRecord(
-      gameName: widget.gameName!,
+      gameName: _currentGameName!,
       players: widget.players,
       scores: _currentScores,
       winTimes: _winCount,
@@ -625,7 +631,7 @@ class GameTableScreenState extends State<GameTableScreen> {
   void _showEndGameDialog() {
     if (_isGameLocked) return;
     
-    String defaultGameName = '牌局 ${DateTime.now().month}/${DateTime.now().day} ${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')}';
+    String defaultGameName = _currentGameName ?? '牌局 ${DateTime.now().month}/${DateTime.now().day} ${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')}';
     TextEditingController nameController = TextEditingController(text: defaultGameName);
 
     showDialog(
@@ -658,8 +664,9 @@ class GameTableScreenState extends State<GameTableScreen> {
                 String gameName = nameController.text.trim();
                 if (gameName.isEmpty) gameName = defaultGameName;
                 
-                if (widget.gameName != null && widget.gameName != gameName) {
-                  await FirestoreHelper.instance.renameGameRecord(widget.gameName!, gameName);
+                if (_currentGameName != null && _currentGameName != gameName) {
+                  await FirestoreHelper.instance.renameGameRecord(_currentGameName!, gameName);
+                  _currentGameName = gameName;
                 }
                 
                 List<List<int>> allStates = List.from(_history);
