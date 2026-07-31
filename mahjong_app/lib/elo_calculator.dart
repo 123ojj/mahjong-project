@@ -70,23 +70,32 @@ class EloCalculator {
       for (var player in playersInGame) {
         String name = player['name'];
         eloScores[name] = eloScores[name]! + (eloChanges[name] ?? 0);
+        if (eloScores[name]! < 1400.0) {
+          eloScores[name] = 1400.0;
+        }
       }
     }
 
-    DateTime now = DateTime.now();
-    for (String name in eloScores.keys) {
-      if (lastPlayedDates.containsKey(name)) {
-        DateTime lastPlayed = lastPlayedDates[name]!;
-        int daysInactive = now.difference(lastPlayed).inDays;
-        
-        if (daysInactive >= 30) {
-          int penaltyPeriods = daysInactive ~/ 30;
-          double penalty = penaltyPeriods * 10.0;
+    DateTime? globalLastPlayed;
+    for (var date in lastPlayedDates.values) {
+      if (globalLastPlayed == null || date.isAfter(globalLastPlayed)) {
+        globalLastPlayed = date;
+      }
+    }
+
+    if (globalLastPlayed != null) {
+      for (String name in eloScores.keys) {
+        if (lastPlayedDates.containsKey(name)) {
+          DateTime lastPlayed = lastPlayedDates[name]!;
+          int daysInactive = globalLastPlayed.difference(lastPlayed).inDays;
           
-          double currentElo = eloScores[name]!;
-          if (currentElo > 1500.0) {
+          if (daysInactive >= 30) {
+            int penaltyPeriods = daysInactive ~/ 30;
+            double penalty = penaltyPeriods * 10.0;
+            
+            double currentElo = eloScores[name]!;
             double newElo = currentElo - penalty;
-            if (newElo < 1500.0) newElo = 1500.0;
+            if (newElo < 1400.0) newElo = 1400.0;
             eloScores[name] = newElo;
           }
         }

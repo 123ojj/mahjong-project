@@ -68,7 +68,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   }
   
   String _getRankName(double elo) {
-    if (elo < 1550) return '初心雀士';
+    if (elo < 1550) return '初心';
     if (elo < 1600) return '雀士';
     if (elo < 1650) return '雀傑';
     if (elo < 1700) return '雀豪';
