@@ -2,18 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'db_helper.dart';
 import 'statistics_screen.dart';
+import 'statistics_screen.dart';
 import 'firestore_helper.dart';
+import 'elo_calculator.dart';
 
 class GlobalPlayerProfileScreen extends StatefulWidget {
   const GlobalPlayerProfileScreen({Key? key}) : super(key: key);
 
   @override
-  _GlobalPlayerProfileScreenState createState() => _GlobalPlayerProfileScreenState();
+  _GlobalPlayerProfileScreenState createState() =>
+      _GlobalPlayerProfileScreenState();
 }
 
 class _GlobalPlayerProfileScreenState extends State<GlobalPlayerProfileScreen> {
   List<String> _allPlayers = [];
   Map<String, Map<String, dynamic>> _playerStats = {};
+  Map<String, double> _eloScores = {};
   Set<String> _expandedPlayers = {};
   bool _isLoading = true;
   String _selectedLeaderboardType = '胡牌王';
@@ -45,14 +49,18 @@ class _GlobalPlayerProfileScreenState extends State<GlobalPlayerProfileScreen> {
 
   Future<void> _loadAllData() async {
     final players = await FirestoreHelper.instance.getAllPlayers();
+    final records = await FirestoreHelper.instance.getHistoryRecords();
+    Map<String, double> eloScores = EloCalculator.calculateEloRankings(records);
+
     Map<String, Map<String, dynamic>> statsMap = {};
     for (String player in players) {
       statsMap[player] = await FirestoreHelper.instance.getPlayerStats(player);
     }
-    
+
     setState(() {
       _allPlayers = players;
       _playerStats = statsMap;
+      _eloScores = eloScores;
       if (_allPlayers.length >= 2) {
         _comparePlayer1 = _allPlayers[0];
         _comparePlayer2 = _allPlayers[1];
@@ -60,12 +68,12 @@ class _GlobalPlayerProfileScreenState extends State<GlobalPlayerProfileScreen> {
         _comparePlayer1 = _allPlayers[0];
         _comparePlayer2 = _allPlayers[0];
       }
-      
+
       if (_allPlayers.isNotEmpty) {
         _synergyTargetPlayer = _allPlayers[0];
         _loadSynergyStats(_allPlayers[0]);
       }
-      
+
       _isLoading = false;
     });
   }
@@ -93,18 +101,21 @@ class _GlobalPlayerProfileScreenState extends State<GlobalPlayerProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 4,
+      length: 5,
       child: Scaffold(
         backgroundColor: const Color(0xFFE8E8E8),
         appBar: AppBar(
           backgroundColor: Colors.green[800],
-          title: const Text('玩家總覽', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          title: const Text('玩家總覽',
+              style:
+                  TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           centerTitle: true,
           elevation: 0,
           bottom: const TabBar(
             indicatorColor: Colors.white,
             indicatorWeight: 3,
-            labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+            labelStyle: TextStyle(
+                fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
             unselectedLabelColor: Colors.white70,
             tabs: [
               Tab(text: '玩家清單'),
@@ -150,7 +161,8 @@ class _GlobalPlayerProfileScreenState extends State<GlobalPlayerProfileScreen> {
 
   Widget _buildComparisonView() {
     if (_allPlayers.length < 2) {
-      return const Center(child: Text('需要至少兩名玩家才能進行比較', style: TextStyle(fontSize: 16)));
+      return const Center(
+          child: Text('需要至少兩名玩家才能進行比較', style: TextStyle(fontSize: 16)));
     }
 
     return Column(
@@ -162,12 +174,20 @@ class _GlobalPlayerProfileScreenState extends State<GlobalPlayerProfileScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              Expanded(child: _buildCompareDropdown(_comparePlayer1, (val) => setState(() => _comparePlayer1 = val))),
+              Expanded(
+                  child: _buildCompareDropdown(_comparePlayer1,
+                      (val) => setState(() => _comparePlayer1 = val))),
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16),
-                child: Text('VS', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.green)),
+                child: Text('VS',
+                    style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green)),
               ),
-              Expanded(child: _buildCompareDropdown(_comparePlayer2, (val) => setState(() => _comparePlayer2 = val))),
+              Expanded(
+                  child: _buildCompareDropdown(_comparePlayer2,
+                      (val) => setState(() => _comparePlayer2 = val))),
             ],
           ),
         ),
@@ -204,14 +224,20 @@ class _GlobalPlayerProfileScreenState extends State<GlobalPlayerProfileScreen> {
         child: DropdownButton<String>(
           isExpanded: true,
           dropdownColor: Colors.white,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+          style: const TextStyle(
+              fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
           icon: const Icon(Icons.arrow_drop_down, color: Colors.black87),
           value: value,
           onChanged: onChanged,
           items: _allPlayers.map<DropdownMenuItem<String>>((String val) {
             return DropdownMenuItem<String>(
               value: val,
-              child: Center(child: Text(val, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87))),
+              child: Center(
+                  child: Text(val,
+                      style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87))),
             );
           }).toList(),
         ),
@@ -219,8 +245,10 @@ class _GlobalPlayerProfileScreenState extends State<GlobalPlayerProfileScreen> {
     );
   }
 
-  Widget _buildCompareRow(String label, String statKey, {bool isPercentage = false}) {
-    if (_comparePlayer1 == null || _comparePlayer2 == null) return const SizedBox();
+  Widget _buildCompareRow(String label, String statKey,
+      {bool isPercentage = false}) {
+    if (_comparePlayer1 == null || _comparePlayer2 == null)
+      return const SizedBox();
 
     Map<String, dynamic> stats1 = _playerStats[_comparePlayer1!] ?? {};
     Map<String, dynamic> stats2 = _playerStats[_comparePlayer2!] ?? {};
@@ -243,8 +271,10 @@ class _GlobalPlayerProfileScreenState extends State<GlobalPlayerProfileScreen> {
       val2 = (stats2[statKey] ?? 0).toDouble();
     }
 
-    String display1 = isPercentage ? '${val1.toStringAsFixed(1)} %' : val1.toInt().toString();
-    String display2 = isPercentage ? '${val2.toStringAsFixed(1)} %' : val2.toInt().toString();
+    String display1 =
+        isPercentage ? '${val1.toStringAsFixed(1)} %' : val1.toInt().toString();
+    String display2 =
+        isPercentage ? '${val2.toStringAsFixed(1)} %' : val2.toInt().toString();
 
     Color color1 = val1 > val2 ? Colors.red.shade700 : Colors.black87;
     Color color2 = val2 > val1 ? Colors.red.shade700 : Colors.black87;
@@ -258,9 +288,27 @@ class _GlobalPlayerProfileScreenState extends State<GlobalPlayerProfileScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Expanded(child: Center(child: Text(display1, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color1)))),
-          Expanded(child: Center(child: Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black54)))),
-          Expanded(child: Center(child: Text(display2, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color2)))),
+          Expanded(
+              child: Center(
+                  child: Text(display1,
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: color1)))),
+          Expanded(
+              child: Center(
+                  child: Text(label,
+                      style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black54)))),
+          Expanded(
+              child: Center(
+                  child: Text(display2,
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: color2)))),
         ],
       ),
     );
@@ -283,10 +331,14 @@ class _GlobalPlayerProfileScreenState extends State<GlobalPlayerProfileScreen> {
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               isExpanded: true,
-              dropdownColor: Colors.white, // FIX: set white background for dropdown
+              dropdownColor:
+                  Colors.white, // FIX: set white background for dropdown
               value: _selectedLeaderboardType,
               icon: const Icon(Icons.arrow_drop_down, color: Colors.black87),
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+              style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87),
               onChanged: (String? newValue) {
                 if (newValue != null) {
                   setState(() {
@@ -294,7 +346,8 @@ class _GlobalPlayerProfileScreenState extends State<GlobalPlayerProfileScreen> {
                   });
                 }
               },
-              items: _leaderboardOptions.map<DropdownMenuItem<String>>((String value) {
+              items: _leaderboardOptions
+                  .map<DropdownMenuItem<String>>((String value) {
                 return DropdownMenuItem<String>(
                   value: value,
                   child: Center(child: Text(value)),
@@ -303,7 +356,7 @@ class _GlobalPlayerProfileScreenState extends State<GlobalPlayerProfileScreen> {
             ),
           ),
         ),
-        
+
         // Rank List
         Expanded(
           child: _buildRankList(),
@@ -315,9 +368,9 @@ class _GlobalPlayerProfileScreenState extends State<GlobalPlayerProfileScreen> {
   Widget _buildRankList() {
     List<String> sortedPlayers = List.from(_allPlayers);
     sortedPlayers.sort((a, b) {
-       double valA = _getSortValue(a, _selectedLeaderboardType);
-       double valB = _getSortValue(b, _selectedLeaderboardType);
-       return valB.compareTo(valA); // 降冪排序
+      double valA = _getSortValue(a, _selectedLeaderboardType);
+      double valB = _getSortValue(b, _selectedLeaderboardType);
+      return valB.compareTo(valA); // 降冪排序
     });
 
     return ListView.builder(
@@ -325,7 +378,8 @@ class _GlobalPlayerProfileScreenState extends State<GlobalPlayerProfileScreen> {
       itemCount: sortedPlayers.length,
       itemBuilder: (context, index) {
         String player = sortedPlayers[index];
-        String displayValue = _getDisplayValue(player, _selectedLeaderboardType);
+        String displayValue =
+            _getDisplayValue(player, _selectedLeaderboardType);
 
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
@@ -333,26 +387,43 @@ class _GlobalPlayerProfileScreenState extends State<GlobalPlayerProfileScreen> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(8),
-            boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.2), blurRadius: 4, offset: const Offset(0, 2))],
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.grey.withOpacity(0.2),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2))
+            ],
           ),
           child: Row(
             children: [
               // Rank Icon/Text
               SizedBox(
                 width: 70,
-                child: index == 0 
-                  ? const Icon(Icons.emoji_events, color: Colors.amber, size: 36)
-                  : Text('No. ${index + 1}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.black87)),
+                child: index == 0
+                    ? const Icon(Icons.emoji_events,
+                        color: Colors.amber, size: 36)
+                    : Text('No. ${index + 1}',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                            color: Colors.black87)),
               ),
               const SizedBox(width: 8),
               // Player Name
               Expanded(
-                child: Text(player, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black54)),
+                child: Text(player,
+                    style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black54)),
               ),
               // Value
               Text(
                 displayValue,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+                style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87),
               ),
             ],
           ),
@@ -364,35 +435,45 @@ class _GlobalPlayerProfileScreenState extends State<GlobalPlayerProfileScreen> {
   double _getSortValue(String player, String type) {
     Map<String, dynamic> stats = _playerStats[player] ?? {};
     switch (type) {
-      case '得分王': return (stats['totalScore'] ?? 0).toDouble();
-      case '自摸王': return (stats['selfDrawnTimes'] ?? 0).toDouble();
-      case '自摸率': return (stats['selfDrawnRate'] ?? 0).toDouble();
-      case '胡牌王': return (stats['winTimes'] ?? 0).toDouble();
-      case '胡牌率': return (stats['winRate'] ?? 0).toDouble();
-      case '放槍王': return (stats['chuckTimes'] ?? 0).toDouble();
-      case '放槍率': return (stats['chuckRate'] ?? 0).toDouble();
-      case '最高台數': return (stats['highestTai'] ?? 0).toDouble();
-      case '最多連莊': return (stats['maxCombo'] ?? 0).toDouble();
-      default: return 0;
+      case '得分王':
+        return (stats['totalScore'] ?? 0).toDouble();
+      case '自摸王':
+        return (stats['selfDrawnTimes'] ?? 0).toDouble();
+      case '自摸率':
+        return (stats['selfDrawnRate'] ?? 0).toDouble();
+      case '胡牌王':
+        return (stats['winTimes'] ?? 0).toDouble();
+      case '胡牌率':
+        return (stats['winRate'] ?? 0).toDouble();
+      case '放槍王':
+        return (stats['chuckTimes'] ?? 0).toDouble();
+      case '放槍率':
+        return (stats['chuckRate'] ?? 0).toDouble();
+      case '最高台數':
+        return (stats['highestTai'] ?? 0).toDouble();
+      case '最多連莊':
+        return (stats['maxCombo'] ?? 0).toDouble();
+      default:
+        return 0;
     }
   }
 
   String _getDisplayValue(String player, String type) {
     Map<String, dynamic> stats = _playerStats[player] ?? {};
     int games = stats['gameCount'] ?? 0;
-    
+
     switch (type) {
-      case '得分王': 
+      case '得分王':
         int s = stats['totalScore'] ?? 0;
         return '${s > 0 ? '+' : ''}$s';
-      case '自摸王': 
-      case '胡牌王': 
-      case '放槍王': 
+      case '自摸王':
+      case '胡牌王':
+      case '放槍王':
         int count = _getSortValue(player, type).toInt();
         return '$count次 ($games局)';
-      case '自摸率': 
-      case '胡牌率': 
-      case '放槍率': 
+      case '自摸率':
+      case '胡牌率':
+      case '放槍率':
         double rate = _getSortValue(player, type);
         return '${rate.toStringAsFixed(1)}%';
       case '最高台數':
@@ -401,22 +482,28 @@ class _GlobalPlayerProfileScreenState extends State<GlobalPlayerProfileScreen> {
       case '最多連莊':
         int combo = stats['maxCombo'] ?? 0;
         return '連 $combo';
-      default: 
+      default:
         return '';
     }
   }
 
   // --- Player List View Methods ---
 
-  Widget _buildPlayerCard(String player, Map<String, dynamic> stats, bool isExpanded) {
+  Widget _buildPlayerCard(
+      String player, Map<String, dynamic> stats, bool isExpanded) {
     int totalScore = stats['totalScore'] ?? 0;
-    
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12.0),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
-        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.3), blurRadius: 4, offset: const Offset(0, 2))],
+        boxShadow: [
+          BoxShadow(
+              color: Colors.grey.withOpacity(0.3),
+              blurRadius: 4,
+              offset: const Offset(0, 2))
+        ],
       ),
       child: Column(
         children: [
@@ -430,53 +517,73 @@ class _GlobalPlayerProfileScreenState extends State<GlobalPlayerProfileScreen> {
                 children: [
                   const Icon(Icons.drag_handle, color: Colors.black54),
                   const SizedBox(width: 12),
-                  // Avatar placeholder
+                  // Avatar placeholder -> Elo Rank Image
                   Container(
                     width: 40,
                     height: 55,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(color: Colors.green.shade700, width: 1.5),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.radio_button_checked, size: 12, color: Colors.red[300]),
-                          Icon(Icons.radio_button_checked, size: 12, color: Colors.blue[300]),
-                          Icon(Icons.radio_button_checked, size: 12, color: Colors.green[300]),
-                        ],
-                      ),
-                    ),
+                    alignment: Alignment.center,
+                    child: Builder(builder: (context) {
+                      double elo = _eloScores[player] ?? 1500.0;
+                      String rankImage = '';
+                      if (elo < 1550)
+                        rankImage = 'assets/new_rank_0.png';
+                      else if (elo < 1600)
+                        rankImage = 'assets/new_rank_1.png';
+                      else if (elo < 1650)
+                        rankImage = 'assets/new_rank_2.png';
+                      else if (elo < 1700)
+                        rankImage = 'assets/new_rank_3.png';
+                      else if (elo < 1750)
+                        rankImage = 'assets/new_rank_4.png';
+                      else
+                        rankImage = 'assets/new_rank_5.png';
+
+                      return Image.asset(rankImage,
+                          fit: BoxFit.contain,
+                          errorBuilder: (c, e, s) => const Icon(Icons.person));
+                    }),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: Text(player, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+                    child: Text(player,
+                        style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87)),
                   ),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      const Text('累積分數', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+                      const Text('累積分數',
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87)),
                       const SizedBox(height: 4),
                       Text(
                         '${totalScore > 0 ? '+' : ''}$totalScore',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: totalScore >= 0 ? Colors.green[700] : Colors.red[700],
+                          color: totalScore >= 0
+                              ? Colors.green[700]
+                              : Colors.red[700],
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(width: 12),
                   const Icon(Icons.more_vert, color: Colors.black87),
-                  Icon(isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down, color: Colors.black87),
+                  Icon(
+                      isExpanded
+                          ? Icons.keyboard_arrow_up
+                          : Icons.keyboard_arrow_down,
+                      color: Colors.black87),
                 ],
               ),
             ),
           ),
-          
+
           // Expanded Details
           if (isExpanded) _buildExpandedDetails(stats),
         ],
@@ -508,20 +615,27 @@ class _GlobalPlayerProfileScreenState extends State<GlobalPlayerProfileScreen> {
           // 詳細資訊 Divider
           Row(
             children: [
-              Expanded(child: Container(height: 1, color: Colors.grey.shade300)),
+              Expanded(
+                  child: Container(height: 1, color: Colors.grey.shade300)),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.grey.shade400),
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: const Text('詳細資訊', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black54)),
+                child: const Text('詳細資訊',
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black54)),
               ),
-              Expanded(child: Container(height: 1, color: Colors.grey.shade300)),
+              Expanded(
+                  child: Container(height: 1, color: Colors.grey.shade300)),
             ],
           ),
           const SizedBox(height: 16),
-          
+
           // Row 1
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -534,21 +648,25 @@ class _GlobalPlayerProfileScreenState extends State<GlobalPlayerProfileScreen> {
           const SizedBox(height: 16),
           const Divider(height: 1),
           const SizedBox(height: 16),
-          
+
           // Row 2
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildDetailItemWithSub('自摸', '$selfDrawn 次', '${selfDrawnRate.toStringAsFixed(1)}%'),
-              _buildDetailItemWithSub('胡牌', '$winTimes 次', '${winRate.toStringAsFixed(1)}%'),
-              _buildDetailItemWithSub('放槍', '$chuckTimes 次', '${chuckRate.toStringAsFixed(1)}%'),
-              _buildDetailItemWithSub('被自摸', '$gotSelfDrawnTimes 次', '${gotSelfDrawnRate.toStringAsFixed(1)}%'),
+              _buildDetailItemWithSub(
+                  '自摸', '$selfDrawn 次', '${selfDrawnRate.toStringAsFixed(1)}%'),
+              _buildDetailItemWithSub(
+                  '胡牌', '$winTimes 次', '${winRate.toStringAsFixed(1)}%'),
+              _buildDetailItemWithSub(
+                  '放槍', '$chuckTimes 次', '${chuckRate.toStringAsFixed(1)}%'),
+              _buildDetailItemWithSub('被自摸', '$gotSelfDrawnTimes 次',
+                  '${gotSelfDrawnRate.toStringAsFixed(1)}%'),
             ],
           ),
           const SizedBox(height: 16),
           const Divider(height: 1),
           const SizedBox(height: 16),
-          
+
           // Row 3 (Extremes)
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -561,9 +679,13 @@ class _GlobalPlayerProfileScreenState extends State<GlobalPlayerProfileScreen> {
           const SizedBox(height: 16),
           const Divider(height: 1),
           const SizedBox(height: 16),
-          
+
           // Radar Chart Title
-          const Text('能力雷達圖', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
+          const Text('能力雷達圖',
+              style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87)),
           const SizedBox(height: 8),
           _buildRadarChart(stats),
         ],
@@ -632,19 +754,27 @@ class _GlobalPlayerProfileScreenState extends State<GlobalPlayerProfileScreen> {
           borderData: FlBorderData(show: false),
           radarBorderData: const BorderSide(color: Colors.transparent),
           titlePositionPercentageOffset: 0.15,
-          titleTextStyle: const TextStyle(color: Colors.black87, fontSize: 12, fontWeight: FontWeight.bold),
+          titleTextStyle: const TextStyle(
+              color: Colors.black87, fontSize: 12, fontWeight: FontWeight.bold),
           getTitle: (index, angle) {
             switch (index) {
-              case 0: return const RadarChartTitle(text: '攻擊力');
-              case 1: return const RadarChartTitle(text: '防禦力');
-              case 2: return const RadarChartTitle(text: '爆發力');
-              case 3: return const RadarChartTitle(text: '強運度');
-              case 4: return const RadarChartTitle(text: '穩定度');
-              default: return const RadarChartTitle(text: '');
+              case 0:
+                return const RadarChartTitle(text: '攻擊力');
+              case 1:
+                return const RadarChartTitle(text: '防禦力');
+              case 2:
+                return const RadarChartTitle(text: '爆發力');
+              case 3:
+                return const RadarChartTitle(text: '強運度');
+              case 4:
+                return const RadarChartTitle(text: '穩定度');
+              default:
+                return const RadarChartTitle(text: '');
             }
           },
           tickCount: 4,
-          ticksTextStyle: const TextStyle(color: Colors.transparent, fontSize: 10),
+          ticksTextStyle:
+              const TextStyle(color: Colors.transparent, fontSize: 10),
           tickBorderData: BorderSide(color: Colors.grey.shade300),
           gridBorderData: BorderSide(color: Colors.grey.shade400, width: 1.5),
         ),
@@ -655,9 +785,17 @@ class _GlobalPlayerProfileScreenState extends State<GlobalPlayerProfileScreen> {
   Widget _buildDetailItem(String label, String value) {
     return Column(
       children: [
-        Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87)),
+        Text(label,
+            style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87)),
         const SizedBox(height: 8),
-        Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+        Text(value,
+            style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87)),
       ],
     );
   }
@@ -665,11 +803,23 @@ class _GlobalPlayerProfileScreenState extends State<GlobalPlayerProfileScreen> {
   Widget _buildDetailItemWithSub(String label, String value1, String value2) {
     return Column(
       children: [
-        Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87)),
+        Text(label,
+            style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87)),
         const SizedBox(height: 8),
-        Text(value1, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
+        Text(value1,
+            style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87)),
         const SizedBox(height: 4),
-        Text(value2, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black54)),
+        Text(value2,
+            style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.black54)),
       ],
     );
   }
@@ -688,9 +838,11 @@ class _GlobalPlayerProfileScreenState extends State<GlobalPlayerProfileScreen> {
           color: Colors.white,
           child: Row(
             children: [
-              const Text('分析對象：', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const Text('分析對象：',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(width: 8),
-              Expanded(child: _buildCompareDropdown(_synergyTargetPlayer, (val) {
+              Expanded(
+                  child: _buildCompareDropdown(_synergyTargetPlayer, (val) {
                 if (val != null) _loadSynergyStats(val);
               })),
             ],
@@ -716,13 +868,16 @@ class _GlobalPlayerProfileScreenState extends State<GlobalPlayerProfileScreen> {
                         if (games == 0) return const SizedBox();
 
                         double coWinRate = (wins / games) * 100;
-                        double coAvgScore = (score / games) * 16.0; // 換算成每將(16把)的預期得分
+                        double coAvgScore =
+                            (score / games) * 16.0; // 換算成每將(16把)的預期得分
 
                         // Get baseline stats
-                        Map<String, dynamic> baseStats = _playerStats[_synergyTargetPlayer!] ?? {};
+                        Map<String, dynamic> baseStats =
+                            _playerStats[_synergyTargetPlayer!] ?? {};
                         double baseWinRate = baseStats['winRate'] ?? 0;
                         int baseGames = baseStats['gameCount'] ?? 1;
-                        double baseAvgScore = ((baseStats['totalScore'] ?? 0) / baseGames) * 16.0;
+                        double baseAvgScore =
+                            ((baseStats['totalScore'] ?? 0) / baseGames) * 16.0;
 
                         // Differences
                         double winRateDiff = coWinRate - baseWinRate;
@@ -754,34 +909,61 @@ class _GlobalPlayerProfileScreenState extends State<GlobalPlayerProfileScreen> {
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(8),
-                            border: Border(left: BorderSide(color: tagColor, width: 4)),
-                            boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.2), blurRadius: 4, offset: const Offset(0, 2))],
+                            border: Border(
+                                left: BorderSide(color: tagColor, width: 4)),
+                            boxShadow: [
+                              BoxShadow(
+                                  color: Colors.grey.withOpacity(0.2),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2))
+                            ],
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text('VS $coPlayer', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+                                  Text('VS $coPlayer',
+                                      style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.black87)),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(color: tagColor.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
-                                    child: Text(tag, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: tagColor)),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                        color: tagColor.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(4)),
+                                    child: Text(tag,
+                                        style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                            color: tagColor)),
                                   ),
                                 ],
                               ),
                               const SizedBox(height: 8),
-                              Text('共同局數: $games 把', style: const TextStyle(fontSize: 14, color: Colors.black54)),
+                              Text('共同局數: $games 把',
+                                  style: const TextStyle(
+                                      fontSize: 14, color: Colors.black54)),
                               const SizedBox(height: 12),
                               Row(
                                 children: [
                                   Expanded(
-                                    child: _buildSynergyStatItem('同桌勝率', coWinRate, baseWinRate, isPercent: true),
+                                    child: _buildSynergyStatItem(
+                                        '同桌勝率', coWinRate, baseWinRate,
+                                        isPercent: true),
                                   ),
-                                  Container(width: 1, height: 40, color: Colors.grey.shade300),
+                                  Container(
+                                      width: 1,
+                                      height: 40,
+                                      color: Colors.grey.shade300),
                                   Expanded(
-                                    child: _buildSynergyStatItem('預期均分(每將)', coAvgScore, baseAvgScore, isPercent: false),
+                                    child: _buildSynergyStatItem(
+                                        '預期均分(每將)', coAvgScore, baseAvgScore,
+                                        isPercent: false),
                                   ),
                                 ],
                               )
@@ -795,23 +977,40 @@ class _GlobalPlayerProfileScreenState extends State<GlobalPlayerProfileScreen> {
     );
   }
 
-  Widget _buildSynergyStatItem(String label, double val, double base, {required bool isPercent}) {
+  Widget _buildSynergyStatItem(String label, double val, double base,
+      {required bool isPercent}) {
     double diff = val - base;
-    String diffStr = diff > 0 ? '+${diff.toStringAsFixed(1)}' : diff.toStringAsFixed(1);
-    Color diffColor = diff > 0 ? Colors.green.shade700 : (diff < 0 ? Colors.red.shade700 : Colors.black54);
-    
-    String valStr = isPercent ? '${val.toStringAsFixed(1)}%' : val.toStringAsFixed(1);
+    String diffStr =
+        diff > 0 ? '+${diff.toStringAsFixed(1)}' : diff.toStringAsFixed(1);
+    Color diffColor = diff > 0
+        ? Colors.green.shade700
+        : (diff < 0 ? Colors.red.shade700 : Colors.black54);
+
+    String valStr =
+        isPercent ? '${val.toStringAsFixed(1)}%' : val.toStringAsFixed(1);
 
     return Column(
       children: [
-        Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black54)),
+        Text(label,
+            style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.black54)),
         const SizedBox(height: 4),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(valStr, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+            Text(valStr,
+                style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87)),
             const SizedBox(width: 8),
-            Text('($diffStr)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: diffColor)),
+            Text('($diffStr)',
+                style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: diffColor)),
           ],
         )
       ],
