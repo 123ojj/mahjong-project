@@ -105,8 +105,33 @@ class FirestoreHelper {
 
   Future<List<String>> getAllPlayers() async {
     final snapshot = await _firestore.collection('game_records').get();
-    final players = snapshot.docs.map((doc) => doc.data()['playerName'] as String).toSet().toList();
-    return players;
+    
+    Map<String, DateTime> lastPlayedDates = {};
+    for (var doc in snapshot.docs) {
+      String playerName = doc.data()['playerName'] as String;
+      String? createdAtStr = doc.data()['createdAt'] as String?;
+      if (createdAtStr != null) {
+        DateTime? dt = DateTime.tryParse(createdAtStr.replaceAll('/', '-'));
+        if (dt != null) {
+          if (!lastPlayedDates.containsKey(playerName) || dt.isAfter(lastPlayedDates[playerName]!)) {
+            lastPlayedDates[playerName] = dt;
+          }
+        }
+      } else {
+        // Fallback for very old records without dates
+        lastPlayedDates[playerName] = DateTime.now();
+      }
+    }
+
+    DateTime now = DateTime.now();
+    List<String> activePlayers = [];
+    for (String player in lastPlayedDates.keys) {
+      if (now.difference(lastPlayedDates[player]!).inDays <= 365) {
+        activePlayers.add(player);
+      }
+    }
+    
+    return activePlayers;
   }
 
   Future<Map<String, dynamic>> getPlayerStats(String playerName) async {

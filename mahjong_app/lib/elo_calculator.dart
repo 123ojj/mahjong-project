@@ -102,6 +102,19 @@ class EloCalculator {
       }
     }
 
+    DateTime now = DateTime.now();
+    List<String> toRemove = [];
+    for (String name in eloScores.keys) {
+      if (lastPlayedDates.containsKey(name)) {
+        if (now.difference(lastPlayedDates[name]!).inDays > 365) {
+          toRemove.add(name);
+        }
+      }
+    }
+    for (String name in toRemove) {
+      eloScores.remove(name);
+    }
+
     return eloScores;
   }
 
