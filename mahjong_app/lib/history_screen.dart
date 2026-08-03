@@ -236,6 +236,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           initialSelfDrawnCount: selfDrawnTimes,
                           initialChuckCount: chuckTimes,
                           isLocked: isLocked,
+                          documentIds: playersData.map((d) => d['id'] as String).toList(),
                         ),
                       ),
                     );

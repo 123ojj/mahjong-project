@@ -8,7 +8,7 @@ class FirestoreHelper {
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  Future<void> saveGameRecord({
+  Future<List<String>> saveGameRecord({
     required String gameName,
     required List<String> players,
     required List<int> scores,
@@ -24,13 +24,37 @@ class FirestoreHelper {
     required int baseScore,
     required int taiScore,
     String? createdAt,
+    List<String>? documentIds,
   }) async {
+    if (documentIds != null && documentIds.length == 4) {
+      for (int i = 0; i < 4; i++) {
+        await _firestore.collection('game_records').doc(documentIds[i]).update({
+          'score': scores[i],
+          'winTimes': winTimes[i],
+          'selfDrawnTimes': selfDrawnTimes[i],
+          'chuckTimes': chuckTimes[i],
+          'gotSelfDrawnTimes': gotSelfDrawnTimes[i],
+          'highestTai': highestTai[i],
+          'maxCombo': maxCombo[i],
+          'gameCount': gameCount,
+          'historyJson': historyJson,
+          'isLocked': isLocked ? 1 : 0,
+          'playerIndex': i,
+          'baseScore': baseScore,
+          'taiScore': taiScore,
+          if (createdAt != null) 'createdAt': createdAt,
+        });
+      }
+      return documentIds;
+    }
+
     final snapshot = await _firestore.collection('game_records').where('gameName', isEqualTo: gameName).get();
+    List<String> newDocIds = [];
     
     if (snapshot.docs.isEmpty) {
       String currentTime = createdAt ?? DateTime.now().toString().substring(0, 16).replaceAll('-', '/');
       for (int i = 0; i < 4; i++) {
-        await _firestore.collection('game_records').add({
+        var docRef = await _firestore.collection('game_records').add({
           'gameName': gameName,
           'playerName': players[i],
           'score': scores[i],
@@ -48,11 +72,14 @@ class FirestoreHelper {
           'baseScore': baseScore,
           'taiScore': taiScore,
         });
+        newDocIds.add(docRef.id);
       }
     } else {
+      // Fallback for old way (if we somehow don't have documentIds but game exists)
       for (int i = 0; i < 4; i++) {
         var docs = snapshot.docs.where((d) => d.data()['playerName'] == players[i]).toList();
         if (docs.isNotEmpty) {
+          newDocIds.add(docs.first.id);
           await docs.first.reference.update({
             'score': scores[i],
             'winTimes': winTimes[i],
@@ -72,6 +99,7 @@ class FirestoreHelper {
         }
       }
     }
+    return newDocIds;
   }
 
   Future<List<Map<String, dynamic>>> getHistoryRecords() async {

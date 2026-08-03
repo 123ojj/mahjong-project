@@ -20,6 +20,7 @@ class GameTableScreen extends StatefulWidget {
   final List<int>? initialSelfDrawnCount;
   final List<int>? initialChuckCount;
   final bool isLocked;
+  final List<String>? documentIds;
 
   const GameTableScreen({
     Key? key,
@@ -34,6 +35,7 @@ class GameTableScreen extends StatefulWidget {
     this.initialSelfDrawnCount,
     this.initialChuckCount,
     this.isLocked = true,
+    this.documentIds,
   }) : super(key: key);
 
   @override
@@ -58,6 +60,7 @@ class GameTableScreenState extends State<GameTableScreen> {
   
   late int _currentDealerIndex;
   int _comboCount = 0; // 莊家連莊次數
+  List<String>? _documentIds;
 
   int _viewOffset = 0;
   List<int> _uiPositions = [0, 1, 2, 3]; // Logical slots: 0=Bottom, 1=Right, 2=Top, 3=Left
@@ -115,6 +118,7 @@ class GameTableScreenState extends State<GameTableScreen> {
   void initState() {
     super.initState();
     _isGameLocked = widget.isLocked;
+    _documentIds = widget.documentIds;
     
     _currentGameName = widget.gameName;
     if (_currentGameName == null) {
@@ -172,14 +176,17 @@ class GameTableScreenState extends State<GameTableScreen> {
   void _listenToGameUpdates() {
     if (_currentGameName == null) return;
     
-    _gameSubscription = FirebaseFirestore.instance
-        .collection('game_records')
-        .where('gameName', isEqualTo: _currentGameName)
-        .snapshots()
-        .listen((snapshot) {
+    Query query = FirebaseFirestore.instance.collection('game_records');
+    if (_documentIds != null && _documentIds!.isNotEmpty) {
+      query = query.where(FieldPath.documentId, whereIn: _documentIds);
+    } else {
+      query = query.where('gameName', isEqualTo: _currentGameName);
+    }
+
+    _gameSubscription = query.snapshots().listen((snapshot) {
       if (snapshot.docs.isEmpty) return;
       
-      final firstDoc = snapshot.docs.first.data();
+      final firstDoc = snapshot.docs.first.data() as Map<String, dynamic>;
       bool remoteIsLocked = (firstDoc['isLocked'] as int? ?? 0) == 1;
       String remoteHistoryJson = firstDoc['historyJson'] as String? ?? '[]';
       
@@ -242,6 +249,7 @@ class GameTableScreenState extends State<GameTableScreen> {
 
     FirestoreHelper.instance.saveGameRecord(
       gameName: _currentGameName!,
+      documentIds: _documentIds,
       players: widget.players,
       scores: _currentScores,
       winTimes: _winCount,
@@ -255,7 +263,16 @@ class GameTableScreenState extends State<GameTableScreen> {
       isLocked: false,
       baseScore: widget.baseScore,
       taiScore: widget.taiScore,
-    );
+    ).then((ids) {
+      if (mounted && (_documentIds == null || _documentIds!.isEmpty)) {
+        setState(() {
+          _documentIds = ids;
+          // Restart listener with documentIds for precise tracking
+          _gameSubscription?.cancel();
+          _listenToGameUpdates();
+        });
+      }
+    });
   }
 
   void _saveSnapshot() {
