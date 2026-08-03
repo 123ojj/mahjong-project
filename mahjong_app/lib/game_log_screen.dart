@@ -12,17 +12,31 @@ class GameLogScreen extends StatelessWidget {
     required this.fullHistory,
   }) : super(key: key);
 
+  bool _isManualAdjustment(List<int> prevState, List<int> currState) {
+    if (prevState.length < 16 || currState.length < 16) return false;
+    
+    // Check if any win/selfDrawn/chuck count changed
+    for (int i = 4; i < 16; i++) {
+      if (prevState[i] != currState[i]) return false;
+    }
+    
+    // If stats didn't change, but scores DID change, it's a manual adjustment
+    for (int i = 0; i < 4; i++) {
+      if (prevState[i] != currState[i]) return true;
+    }
+    
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     // Generate the rows from history
     List<Widget> contentWidgets = [];
 
-    // The first state is usually the initial state (all 0s)
-    // The deltas are computed as fullHistory[i] - fullHistory[i-1]
-    
     // We group by Jiang and Round
     int currentJiang = -1;
     int currentRound = -1;
+    int realHandCount = 0;
     
     final List<String> windNames = ['東', '南', '西', '北'];
 
@@ -31,8 +45,6 @@ class GameLogScreen extends StatelessWidget {
       List<int> currState = fullHistory[i];
 
       int prevDealerPass = prevState.length >= 36 ? prevState[35] : (prevState.length > 23 ? prevState[23] : 0);
-      int currDealerPass = currState.length >= 36 ? currState[35] : (currState.length > 23 ? currState[23] : 0);
-      int currHand = currState.length >= 37 ? currState[36] : (currState.length > 24 ? currState[24] : i);
       
       // Use previous dealer pass to determine the wind for the transition
       int jiang = prevDealerPass ~/ 16;
@@ -45,11 +57,17 @@ class GameLogScreen extends StatelessWidget {
         contentWidgets.add(_buildSectionHeader(jiang, round, windNames));
       }
 
+      bool isAdjustment = _isManualAdjustment(prevState, currState);
+      if (!isAdjustment) {
+        realHandCount++;
+      }
+
       contentWidgets.add(_buildLogItem(
-        handNumber: i,
-        dealerWindName: windNames[dealerWind] + '風',
+        handNumber: isAdjustment ? -1 : realHandCount,
+        dealerWindName: isAdjustment ? '微調' : (windNames[dealerWind] + '風'),
         prevState: prevState,
         currState: currState,
+        isAdjustment: isAdjustment,
       ));
       
       contentWidgets.add(const Divider(height: 1, thickness: 1, color: Color(0xFFEEEEEE)));
@@ -154,6 +172,7 @@ class GameLogScreen extends StatelessWidget {
     required String dealerWindName,
     required List<int> prevState,
     required List<int> currState,
+    bool isAdjustment = false,
   }) {
     List<int> deltas = [];
     List<int> currentScores = [];
@@ -167,7 +186,7 @@ class GameLogScreen extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12.0),
-      color: handNumber % 2 == 0 ? Colors.grey[50] : Colors.white,
+      color: isAdjustment ? Colors.yellow[50] : (handNumber % 2 == 0 ? Colors.grey[50] : Colors.white),
       child: Row(
         children: [
           SizedBox(
@@ -175,8 +194,9 @@ class GameLogScreen extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('$handNumber', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                Text(dealerWindName, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                if (!isAdjustment)
+                  Text('$handNumber', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                Text(dealerWindName, style: TextStyle(color: isAdjustment ? Colors.orange[800] : Colors.grey, fontSize: 12, fontWeight: isAdjustment ? FontWeight.bold : FontWeight.normal)),
               ],
             ),
           ),
