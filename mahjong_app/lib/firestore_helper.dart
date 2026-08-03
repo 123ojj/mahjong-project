@@ -157,20 +157,20 @@ class FirestoreHelper {
 
     for (var doc in snapshot.docs) {
       final data = doc.data();
-      totalScore += (data['score'] as int? ?? 0);
-      totalWin += (data['winTimes'] as int? ?? 0);
-      totalSelfDrawn += (data['selfDrawnTimes'] as int? ?? 0);
-      totalChuck += (data['chuckTimes'] as int? ?? 0);
-      trueGotSelfDrawn += (data['gotSelfDrawnTimes'] as int? ?? 0);
-      totalGames += (data['gameCount'] as int? ?? 0);
+      totalScore += ((data['score'] as num?)?.toInt() ?? 0);
+      totalWin += ((data['winTimes'] as num?)?.toInt() ?? 0);
+      totalSelfDrawn += ((data['selfDrawnTimes'] as num?)?.toInt() ?? 0);
+      totalChuck += ((data['chuckTimes'] as num?)?.toInt() ?? 0);
+      trueGotSelfDrawn += ((data['gotSelfDrawnTimes'] as num?)?.toInt() ?? 0);
+      totalGames += ((data['gameCount'] as num?)?.toInt() ?? 0);
       
-      int tai = (data['highestTai'] as int? ?? 0);
+      int tai = ((data['highestTai'] as num?)?.toInt() ?? 0);
       if (tai > bestTai) bestTai = tai;
       
-      int combo = (data['maxCombo'] as int? ?? 0);
+      int combo = ((data['maxCombo'] as num?)?.toInt() ?? 0);
       if (combo > bestCombo) bestCombo = combo;
       
-      int score = (data['score'] as int? ?? 0);
+      int score = ((data['score'] as num?)?.toInt() ?? 0);
       if (score > bestSingleScore) bestSingleScore = score;
     }
 
@@ -202,7 +202,8 @@ class FirestoreHelper {
     Map<String, List<Map<String, dynamic>>> games = {};
     for (var doc in snapshot.docs) {
       final data = doc.data();
-      String gameName = data['gameName'];
+      if (data == null || data['gameName'] == null || data['playerName'] == null) continue;
+      String gameName = data['gameName'].toString();
       if (!games.containsKey(gameName)) {
         games[gameName] = [];
       }
@@ -221,9 +222,9 @@ class FirestoreHelper {
           if (!synergy.containsKey(coPlayer)) {
             synergy[coPlayer] = {'coPlayer': coPlayer, 'score': 0, 'wins': 0, 'games': 0};
           }
-          synergy[coPlayer]!['score'] += (targetData['score'] as int? ?? 0);
-          synergy[coPlayer]!['wins'] += (targetData['winTimes'] as int? ?? 0);
-          synergy[coPlayer]!['games'] += (targetData['gameCount'] as int? ?? 0);
+          synergy[coPlayer]!['score'] += ((targetData['score'] as num?)?.toInt() ?? 0);
+          synergy[coPlayer]!['wins'] += ((targetData['winTimes'] as num?)?.toInt() ?? 0);
+          synergy[coPlayer]!['games'] += ((targetData['gameCount'] as num?)?.toInt() ?? 0);
         }
       }
     }
