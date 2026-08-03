@@ -1132,25 +1132,6 @@ class GameTableScreenState extends State<GameTableScreen> {
         ),
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.receipt_long, color: Colors.white), 
-            tooltip: '牌局紀錄',
-            onPressed: () {
-              List<List<int>> fullHistory = List.from(_history);
-              fullHistory.add(currentStateSnapshot);
-              
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => GameLogScreen(
-                    gameName: _currentGameName ?? widget.gameName ?? '牌局',
-                    players: widget.players,
-                    fullHistory: fullHistory,
-                  ),
-                ),
-              );
-            },
-          ),
           IconButton(icon: const Icon(Icons.more_vert, color: Colors.white), onPressed: () {}),
         ],
       ),
@@ -1171,6 +1152,22 @@ class GameTableScreenState extends State<GameTableScreen> {
                   _buildToolButton(Icons.handshake_outlined, '流局', _handleDraw),
                   const SizedBox(width: 24),
                   _buildToolButton(Icons.edit_note, '調整分數', _showAdjustScoreDialog),
+                  const SizedBox(width: 24),
+                  _buildToolButton(Icons.receipt_long, '牌局紀錄', () {
+                    List<List<int>> fullHistory = List.from(_history);
+                    fullHistory.add(currentStateSnapshot);
+                    
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => GameLogScreen(
+                          gameName: _currentGameName ?? widget.gameName ?? '牌局',
+                          players: widget.players,
+                          fullHistory: fullHistory,
+                        ),
+                      ),
+                    );
+                  }),
                   const SizedBox(width: 24),
                   _buildToolButton(Icons.show_chart, '走勢圖', _showTrendChart),
                   const SizedBox(width: 24),
