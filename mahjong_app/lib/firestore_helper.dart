@@ -68,11 +68,14 @@ class FirestoreHelper {
 
   Future<List<Map<String, dynamic>>> getHistoryRecords() async {
     final snapshot = await _firestore.collection('game_records').orderBy('createdAt', descending: true).get();
-    return snapshot.docs.map((doc) {
+    List<Map<String, dynamic>> records = [];
+    for (var doc in snapshot.docs) {
       final data = doc.data();
+      if (data == null || data['playerName'] == null || data['gameName'] == null) continue;
       data['id'] = doc.id;
-      return data;
-    }).toList();
+      records.add(data);
+    }
+    return records;
   }
 
   Future<void> renameGameRecord(String oldName, String newName) async {
@@ -108,8 +111,11 @@ class FirestoreHelper {
     
     Map<String, DateTime> lastPlayedDates = {};
     for (var doc in snapshot.docs) {
-      String playerName = doc.data()['playerName'] as String;
-      String? createdAtStr = doc.data()['createdAt'] as String?;
+      var data = doc.data();
+      if (data == null || !data.containsKey('playerName') || data['playerName'] == null) continue;
+      
+      String playerName = data['playerName'] as String;
+      String? createdAtStr = data['createdAt'] as String?;
       if (createdAtStr != null) {
         DateTime? dt = DateTime.tryParse(createdAtStr.replaceAll('/', '-'));
         if (dt != null) {

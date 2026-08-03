@@ -48,34 +48,41 @@ class _GlobalPlayerProfileScreenState extends State<GlobalPlayerProfileScreen> {
   }
 
   Future<void> _loadAllData() async {
-    final players = await FirestoreHelper.instance.getAllPlayers();
-    final records = await FirestoreHelper.instance.getHistoryRecords();
-    Map<String, double> eloScores = EloCalculator.calculateEloRankings(records);
+    try {
+      final players = await FirestoreHelper.instance.getAllPlayers();
+      final records = await FirestoreHelper.instance.getHistoryRecords();
+      Map<String, double> eloScores = EloCalculator.calculateEloRankings(records);
 
-    Map<String, Map<String, dynamic>> statsMap = {};
-    for (String player in players) {
-      statsMap[player] = await FirestoreHelper.instance.getPlayerStats(player);
+      Map<String, Map<String, dynamic>> statsMap = {};
+      for (String player in players) {
+        statsMap[player] = await FirestoreHelper.instance.getPlayerStats(player);
+      }
+
+      setState(() {
+        _allPlayers = players;
+        _playerStats = statsMap;
+        _eloScores = eloScores;
+        if (_allPlayers.length >= 2) {
+          _comparePlayer1 = _allPlayers[0];
+          _comparePlayer2 = _allPlayers[1];
+        } else if (_allPlayers.isNotEmpty) {
+          _comparePlayer1 = _allPlayers[0];
+          _comparePlayer2 = _allPlayers[0];
+        }
+
+        if (_allPlayers.isNotEmpty) {
+          _synergyTargetPlayer = _allPlayers[0];
+          _loadSynergyStats(_allPlayers[0]);
+        }
+
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading global player data: $e');
+      setState(() {
+        _isLoading = false;
+      });
     }
-
-    setState(() {
-      _allPlayers = players;
-      _playerStats = statsMap;
-      _eloScores = eloScores;
-      if (_allPlayers.length >= 2) {
-        _comparePlayer1 = _allPlayers[0];
-        _comparePlayer2 = _allPlayers[1];
-      } else if (_allPlayers.isNotEmpty) {
-        _comparePlayer1 = _allPlayers[0];
-        _comparePlayer2 = _allPlayers[0];
-      }
-
-      if (_allPlayers.isNotEmpty) {
-        _synergyTargetPlayer = _allPlayers[0];
-        _loadSynergyStats(_allPlayers[0]);
-      }
-
-      _isLoading = false;
-    });
   }
 
   Future<void> _loadSynergyStats(String player) async {

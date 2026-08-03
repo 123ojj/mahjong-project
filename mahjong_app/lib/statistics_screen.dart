@@ -21,41 +21,48 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   }
 
   Future<void> _loadStatistics() async {
-    final records = await FirestoreHelper.instance.getHistoryRecords();
-    
-    // 計算 Elo
-    Map<String, double> eloScores = EloCalculator.calculateEloRankings(records);
+    try {
+      final records = await FirestoreHelper.instance.getHistoryRecords();
+      
+      // 計算 Elo
+      Map<String, double> eloScores = EloCalculator.calculateEloRankings(records);
 
-    // 同時計算每個玩家的總局數與總得分，用於額外資訊
-    Map<String, Map<String, dynamic>> baseStats = {};
-    for (var record in records) {
-      String name = record['playerName'];
-      if (!baseStats.containsKey(name)) {
-        baseStats[name] = {'totalScore': 0, 'gameCount': 0, 'winTimes': 0};
+      // 同時計算每個玩家的總局數與總得分，用於額外資訊
+      Map<String, Map<String, dynamic>> baseStats = {};
+      for (var record in records) {
+        String name = record['playerName'];
+        if (!baseStats.containsKey(name)) {
+          baseStats[name] = {'totalScore': 0, 'gameCount': 0, 'winTimes': 0};
+        }
+        baseStats[name]!['totalScore'] += ((record['score'] ?? 0) as num).toInt();
+        baseStats[name]!['gameCount'] += (record['gameCount'] as int? ?? 1);
+        baseStats[name]!['winTimes'] += (record['winTimes'] as int? ?? 0);
       }
-      baseStats[name]!['totalScore'] += record['score'] as int;
-      baseStats[name]!['gameCount'] += (record['gameCount'] as int? ?? 1);
-      baseStats[name]!['winTimes'] += (record['winTimes'] as int? ?? 0);
-    }
 
-    List<Map<String, dynamic>> statsList = [];
-    eloScores.forEach((name, elo) {
-      statsList.add({
-        'name': name,
-        'elo': elo,
-        'totalScore': baseStats[name]?['totalScore'] ?? 0,
-        'gameCount': baseStats[name]?['gameCount'] ?? 0,
-        'winTimes': baseStats[name]?['winTimes'] ?? 0,
+      List<Map<String, dynamic>> statsList = [];
+      eloScores.forEach((name, elo) {
+        statsList.add({
+          'name': name,
+          'elo': elo,
+          'totalScore': baseStats[name]?['totalScore'] ?? 0,
+          'gameCount': baseStats[name]?['gameCount'] ?? 0,
+          'winTimes': baseStats[name]?['winTimes'] ?? 0,
+        });
       });
-    });
 
-    // 依分數降序排序
-    statsList.sort((a, b) => (b['elo'] as double).compareTo(a['elo'] as double));
+      // 依分數降序排序
+      statsList.sort((a, b) => (b['elo'] as double).compareTo(a['elo'] as double));
 
-    setState(() {
-      _playerStats = statsList;
-      _isLoading = false;
-    });
+      setState(() {
+        _playerStats = statsList;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading statistics: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   String _getRankImage(double elo) {
