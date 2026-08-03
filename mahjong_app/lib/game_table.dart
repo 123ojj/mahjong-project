@@ -252,6 +252,8 @@ class GameTableScreenState extends State<GameTableScreen> {
       gameCount: _totalHandsPlayed,
       historyJson: historyJson,
       isLocked: false,
+      baseScore: widget.baseScore,
+      taiScore: widget.taiScore,
     );
   }
 
@@ -818,6 +820,8 @@ class GameTableScreenState extends State<GameTableScreen> {
                   gameCount: _totalHandsPlayed,
                   historyJson: historyJson,
                   isLocked: true,
+                  baseScore: widget.baseScore,
+                  taiScore: widget.taiScore,
                 );
 
                 setState(() {

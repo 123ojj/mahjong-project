@@ -217,6 +217,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     List<int> winTimes = playersData.map((d) => (d['winTimes'] as int)).toList();
                     List<int> selfDrawnTimes = playersData.map((d) => (d['selfDrawnTimes'] as int)).toList();
                     List<int> chuckTimes = playersData.map((d) => (d['chuckTimes'] as int)).toList();
+                    
+                    int baseScore = (playersData.first['baseScore'] as num?)?.toInt() ?? 50;
+                    int taiScore = (playersData.first['taiScore'] as num?)?.toInt() ?? 20;
 
                     await Navigator.push(
                       context,
@@ -225,8 +228,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           gameName: gameName,
                           players: players,
                           initialDealerIndex: 0,
-                          baseScore: 50,
-                          taiScore: 20,
+                          baseScore: baseScore,
+                          taiScore: taiScore,
                           initialHistoryJson: historyJson,
                           initialScores: scores,
                           initialWinCount: winTimes,

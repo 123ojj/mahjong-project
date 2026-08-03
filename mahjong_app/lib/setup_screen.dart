@@ -128,6 +128,8 @@ class _SetupScreenState extends State<SetupScreen> {
       gameCount: 0,
       historyJson: '[]',
       isLocked: false,
+      baseScore: baseScore,
+      taiScore: taiScore,
     );
 
     if (!mounted) return;

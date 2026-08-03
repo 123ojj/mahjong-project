@@ -21,6 +21,8 @@ class FirestoreHelper {
     required int gameCount,
     required String historyJson,
     required bool isLocked,
+    required int baseScore,
+    required int taiScore,
     String? createdAt,
   }) async {
     final snapshot = await _firestore.collection('game_records').where('gameName', isEqualTo: gameName).get();
@@ -43,6 +45,8 @@ class FirestoreHelper {
           'createdAt': currentTime,
           'isLocked': isLocked ? 1 : 0,
           'playerIndex': i,
+          'baseScore': baseScore,
+          'taiScore': taiScore,
         });
       }
     } else {
@@ -61,6 +65,8 @@ class FirestoreHelper {
             'historyJson': historyJson,
             'isLocked': isLocked ? 1 : 0,
             'playerIndex': i,
+            'baseScore': baseScore,
+            'taiScore': taiScore,
             if (createdAt != null) 'createdAt': createdAt,
           });
         }
