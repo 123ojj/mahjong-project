@@ -144,8 +144,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
               
               // 1. Sort by playerIndex if available
               playersData.sort((a, b) {
-                int indexA = a['playerIndex'] as int? ?? 99;
-                int indexB = b['playerIndex'] as int? ?? 99;
+                int indexA = (a['playerIndex'] as num?)?.toInt() ?? 99;
+                int indexB = (b['playerIndex'] as num?)?.toInt() ?? 99;
                 return indexA.compareTo(indexB);
               });
               

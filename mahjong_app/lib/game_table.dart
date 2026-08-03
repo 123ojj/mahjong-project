@@ -186,6 +186,19 @@ class GameTableScreenState extends State<GameTableScreen> {
         return; 
       }
       
+      // Prevent old snapshots from overwriting optimistic local updates
+      if (remoteHistoryJson != '[]' && _lastHistoryJson != null && _lastHistoryJson != '[]') {
+        try {
+          List<dynamic> remoteParsed = jsonDecode(remoteHistoryJson);
+          List<dynamic> localParsed = jsonDecode(_lastHistoryJson!);
+          if (remoteParsed.length < localParsed.length) {
+            return; // Ignore older snapshot
+          }
+        } catch (e) {
+          // ignore parsing error here
+        }
+      }
+      
       _lastHistoryJson = remoteHistoryJson;
       
       if (mounted) {
