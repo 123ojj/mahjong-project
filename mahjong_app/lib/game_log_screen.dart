@@ -13,16 +13,14 @@ class GameLogScreen extends StatelessWidget {
   }) : super(key: key);
 
   bool _isManualAdjustment(List<int> prevState, List<int> currState) {
-    if (prevState.length < 16 || currState.length < 16) return false;
-    
-    // Check if any win/selfDrawn/chuck count changed
-    for (int i = 4; i < 16; i++) {
-      if (prevState[i] != currState[i]) return false;
+    // For new games (length 37+)
+    if (prevState.length >= 37 && currState.length >= 37) {
+      return prevState[36] == currState[36];
     }
     
-    // If stats didn't change, but scores DID change, it's a manual adjustment
-    for (int i = 0; i < 4; i++) {
-      if (prevState[i] != currState[i]) return true;
+    // For old games (length 11), dealer is at index 4, combo is at index 5
+    if (prevState.length == 11 && currState.length == 11) {
+      return prevState[4] == currState[4] && prevState[5] == currState[5];
     }
     
     return false;
