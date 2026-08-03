@@ -1170,7 +1170,7 @@ class GameTableScreenState extends State<GameTableScreen> {
                   const SizedBox(width: 24),
                   _buildToolButton(Icons.edit_note, '調整分數', _showAdjustScoreDialog),
                   const SizedBox(width: 24),
-                  _buildToolButton(Icons.receipt_long, '牌局紀錄', () {
+                  _buildToolButton(Icons.receipt, '牌局紀錄', () {
                     List<List<int>> fullHistory = List.from(_history);
                     fullHistory.add(currentStateSnapshot);
                     
