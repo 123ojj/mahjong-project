@@ -42,6 +42,7 @@ class FirestoreHelper {
           'historyJson': historyJson,
           'createdAt': currentTime,
           'isLocked': isLocked ? 1 : 0,
+          'playerIndex': i,
         });
       }
     } else {
@@ -59,6 +60,7 @@ class FirestoreHelper {
             'gameCount': gameCount,
             'historyJson': historyJson,
             'isLocked': isLocked ? 1 : 0,
+            'playerIndex': i,
             if (createdAt != null) 'createdAt': createdAt,
           });
         }

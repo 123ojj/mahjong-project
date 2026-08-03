@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'db_helper.dart';
 import 'firestore_helper.dart';
 import 'game_table.dart';
@@ -139,7 +140,67 @@ class _HistoryScreenState extends State<HistoryScreen> {
             itemCount: gameNames.length,
             itemBuilder: (context, index) {
               final gameName = gameNames[index];
-              final playersData = groupedData[gameName]!.reversed.toList();
+              var playersData = groupedData[gameName]!.reversed.toList();
+              
+              // 1. Sort by playerIndex if available
+              playersData.sort((a, b) {
+                int indexA = a['playerIndex'] as int? ?? 99;
+                int indexB = b['playerIndex'] as int? ?? 99;
+                return indexA.compareTo(indexB);
+              });
+              
+              // 2. Fallback to recover original order from historyJson for old games
+              if ((playersData.first['playerIndex'] as int?) == null) {
+                String? rawHistory = playersData.first['historyJson'] as String?;
+                if (rawHistory != null && rawHistory.isNotEmpty && rawHistory != '[]') {
+                  try {
+                    List<dynamic> parsed = jsonDecode(rawHistory);
+                    if (parsed.isNotEmpty) {
+                      List<int> lastState = List<int>.from(parsed.last);
+                      List<int> hScores = lastState.sublist(0, 4);
+                      List<int> hSelfDrawn = lastState.sublist(4, 8);
+                      List<int> hWin = lastState.sublist(8, 12);
+                      List<int> hChuck = lastState.sublist(12, 16);
+                      List<int> hGotSelf = lastState.sublist(16, 20);
+                      
+                      List<Map<String, dynamic>> sorted = List.filled(4, {});
+                      List<bool> matched = [false, false, false, false];
+                      
+                      for (int i = 0; i < 4; i++) {
+                         var pd = playersData[i];
+                         int score = (pd['score'] as num?)?.toInt() ?? 0;
+                         int win = (pd['winTimes'] as num?)?.toInt() ?? 0;
+                         int self = (pd['selfDrawnTimes'] as num?)?.toInt() ?? 0;
+                         int chuck = (pd['chuckTimes'] as num?)?.toInt() ?? 0;
+                         int gotSelf = (pd['gotSelfDrawnTimes'] as num?)?.toInt() ?? 0;
+                         
+                         int matchIdx = -1;
+                         for (int j = 0; j < 4; j++) {
+                           if (!matched[j] &&
+                               hScores[j] == score &&
+                               hWin[j] == win &&
+                               hSelfDrawn[j] == self &&
+                               hChuck[j] == chuck &&
+                               hGotSelf[j] == gotSelf) {
+                             matchIdx = j;
+                             break;
+                           }
+                         }
+                         if (matchIdx != -1) {
+                           sorted[matchIdx] = pd;
+                           matched[matchIdx] = true;
+                         } else {
+                           throw Exception('Mismatch');
+                         }
+                      }
+                      playersData = sorted;
+                    }
+                  } catch (e) {
+                    print("Recovery failed: $e");
+                  }
+                }
+              }
+
               String dateStr = playersData.first['createdAt'] as String? ?? '時間未定';
               bool isLocked = (playersData.first['isLocked'] as int? ?? 1) == 1;
 
