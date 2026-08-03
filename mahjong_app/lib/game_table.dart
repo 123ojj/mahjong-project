@@ -6,6 +6,7 @@ import 'setup_screen.dart';
 import 'db_helper.dart';
 import 'firestore_helper.dart';
 import 'score_trend_chart.dart';
+import 'game_log_screen.dart';
 
 class GameTableScreen extends StatefulWidget {
   final String? gameName;
@@ -1131,7 +1132,25 @@ class GameTableScreenState extends State<GameTableScreen> {
         ),
         centerTitle: true,
         actions: [
-          IconButton(icon: const Icon(Icons.mobile_off_outlined, color: Colors.white), onPressed: () {}),
+          IconButton(
+            icon: const Icon(Icons.receipt_long, color: Colors.white), 
+            tooltip: '牌局紀錄',
+            onPressed: () {
+              List<List<int>> fullHistory = List.from(_history);
+              fullHistory.add(currentStateSnapshot);
+              
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => GameLogScreen(
+                    gameName: _currentGameName ?? widget.gameName ?? '牌局',
+                    players: widget.players,
+                    fullHistory: fullHistory,
+                  ),
+                ),
+              );
+            },
+          ),
           IconButton(icon: const Icon(Icons.more_vert, color: Colors.white), onPressed: () {}),
         ],
       ),
