@@ -548,53 +548,108 @@ class GameTableScreenState extends State<GameTableScreen> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('牌局已結束，無法再更改！')));
       return;
     }
-    List<TextEditingController> controllers = List.generate(4, (index) => TextEditingController());
+    List<int> deltas = [0, 0, 0, 0];
 
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: const Text('調整分數 (微調)'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: List.generate(4, (index) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: TextField(
-                    controller: controllers[index],
-                    keyboardType: const TextInputType.numberWithOptions(signed: true),
-                    decoration: InputDecoration(
-                      labelText: '${widget.players[index]} 的加減分 (例: 50, -50)',
-                    ),
-                  ),
-                );
-              }),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('取消', style: TextStyle(color: Colors.grey)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700]),
-              onPressed: () {
-                _saveSnapshot();
-                setState(() {
-                  for (int i = 0; i < 4; i++) {
-                    int delta = int.tryParse(controllers[i].text) ?? 0;
-                    _currentScores[i] += delta;
-                  }
-                });
-                _autoSaveGame();
-                Navigator.pop(context);
-              },
-              child: const Text('確認', style: TextStyle(color: Colors.white)),
-            ),
-          ],
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('調整分數 (微調)'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: List.generate(4, (index) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 20.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(widget.players[index], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                              Text(
+                                '${deltas[index] > 0 ? '+' : ''}${deltas[index]}',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                  color: deltas[index] > 0 ? Colors.green[700] : (deltas[index] < 0 ? Colors.red : Colors.grey[700]),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            alignment: WrapAlignment.center,
+                            children: [
+                              _buildAdjustButton('-100', () => setDialogState(() => deltas[index] -= 100), Colors.red[50]!, Colors.red[900]!),
+                              _buildAdjustButton('-50', () => setDialogState(() => deltas[index] -= 50), Colors.red[50]!, Colors.red[900]!),
+                              _buildAdjustButton('-10', () => setDialogState(() => deltas[index] -= 10), Colors.red[50]!, Colors.red[900]!),
+                              _buildAdjustButton('+10', () => setDialogState(() => deltas[index] += 10), Colors.green[50]!, Colors.green[900]!),
+                              _buildAdjustButton('+50', () => setDialogState(() => deltas[index] += 50), Colors.green[50]!, Colors.green[900]!),
+                              _buildAdjustButton('+100', () => setDialogState(() => deltas[index] += 100), Colors.green[50]!, Colors.green[900]!),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                     setDialogState(() {
+                        for(int i=0; i<4; i++) deltas[i] = 0;
+                     });
+                  },
+                  child: const Text('歸零', style: TextStyle(color: Colors.blue)),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('取消', style: TextStyle(color: Colors.grey)),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700]),
+                  onPressed: () {
+                    _saveSnapshot();
+                    setState(() {
+                      for (int i = 0; i < 4; i++) {
+                        _currentScores[i] += deltas[i];
+                      }
+                    });
+                    _autoSaveGame();
+                    Navigator.pop(context);
+                  },
+                  child: const Text('確認', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            );
+          },
         );
       },
+    );
+  }
+
+  Widget _buildAdjustButton(String label, VoidCallback onPressed, Color bgColor, Color textColor) {
+    return InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        width: 44,
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: textColor.withOpacity(0.3)),
+        ),
+        child: Text(label, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textColor)),
+      ),
     );
   }
 
